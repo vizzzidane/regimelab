@@ -1,0 +1,10 @@
+.env
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+venv/
+.venv/
+
+# Future large/generated folders
+data/raw/
+data/cache/
