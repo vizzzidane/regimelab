@@ -1,43 +1,94 @@
 # RegimeLab
 
-RegimeLab is an event-driven market regime analysis project.
-
-It studies how SPY behaves around CPI releases and FOMC decision dates under different market regimes. The current version is a local Jupyter notebook prototype. It is not a trading bot, stock predictor, or live trading system.
-
-The goal is to build a credible finance/ML analysis pipeline first, then later package it into a full-stack application.
+Event-driven market regime analysis using SPY daily data, K-Means clustering, and CPI/FOMC event-window study.
 
 ---
 
-## Current Status
+## Project Structure
 
-Phase 1 is complete.
-
-The notebook currently does two things:
-
-1. Classifies SPY market history into regimes using K-Means.
-2. Studies CPI and FOMC event-window returns from `-5` to `+5` trading days, grouped by pre-event regime.
+```
+regimelab/
+├── data/                        # Cached data and generated outputs
+├── events/
+│   ├── event_dates.py           # CPI_DATES and FOMC_DATES (2010–2024)
+│   └── events.csv               # Combined event table
+├── notebooks/
+│   └── 01_regime_analysis.ipynb # Exploratory notebook (Phase 1A + 1B)
+├── src/
+│   └── regimelab/               # Refactored Python modules (Phase 1C)
+│       ├── __init__.py
+│       ├── config.py            # Paths and constants
+│       ├── data_loader.py       # SPY data download / cache
+│       ├── features.py          # Rolling regime features
+│       ├── clustering.py        # K-Means regime model
+│       ├── events.py            # Event-date loading and alignment
+│       ├── event_study.py       # Window extraction and summary metrics
+│       └── visualization.py    # Chart generation
+├── scripts/
+│   └── run_phase1.py            # End-to-end pipeline runner
+├── tests/
+│   └── test_basic_pipeline.py   # Basic smoke tests
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## Why This Project Exists
+## Phases
 
-Many beginner finance projects try to predict the next stock price directly. That is usually hard to justify and easy to overclaim.
+### Phase 1A – Regime Clustering (Notebook)
+The notebook `notebooks/01_regime_analysis.ipynb` downloads SPY data, computes rolling features (volatility, momentum, drawdown), and clusters the market into **Calm**, **Choppy**, and **Stressed** regimes using K-Means (k=3).
 
-RegimeLab takes a more careful approach:
+### Phase 1B – Event-Window Analysis (Notebook)
+The same notebook extends the analysis by aligning CPI and FOMC dates to SPY trading days, extracting [-5, +5] trading-day return windows, and computing event-study summary statistics and charts.
 
-> Instead of predicting prices, it studies how asset behaviour around macro events differs across historical market regimes.
-
-This makes the analysis more defensible because the focus is on methodology, assumptions, and limitations rather than unsupported claims of profitability.
+### Phase 1C – Python Modules (this refactor)
+The notebook logic has been refactored into clean, importable modules under `src/regimelab/`.  The notebook remains the exploratory artifact; the modules reproduce the same outputs programmatically.
 
 ---
 
-## Methodology
+## Running the Pipeline
 
-### 1. Data
+Install dependencies:
 
-The project uses daily SPY data from 2005 onwards.
+```bash
+pip install -r requirements.txt
+```
 
-The data is cached locally as:
+Run the full Phase 1 pipeline from the project root:
 
-```text
-data/spy_daily.csv
+```bash
+python scripts/run_phase1.py
+```
+
+This will:
+1. Load (or download) SPY daily data and cache it to `data/spy_daily.csv`.
+2. Compute regime features and fit K-Means (k=3).
+3. Validate regimes against known stress periods (GFC, COVID, 2022).
+4. Align CPI/FOMC event dates to trading days.
+5. Extract event windows and compute summary metrics.
+6. Save all charts and CSVs to `data/`.
+
+---
+
+## Running Tests
+
+```bash
+pytest tests/test_basic_pipeline.py -v
+```
+
+---
+
+## Methodology Notes
+
+- All rolling features use only past data (`min_periods` enforced). No lookahead bias in feature construction.
+- K-Means is fitted on the full historical dataset, so regime labels are **exploratory** and not suitable for walk-forward backtesting without further adaptation.
+- The primary grouping variable for event-study analysis is `pre_event_regime` (regime on Day −1), which reduces event-day lookahead bias.
+- The Stressed regime has very few events (≤2 CPI, 1 FOMC). Do not draw strong conclusions from those buckets.
+- **This project makes no claims of alpha, profitability, or trading readiness.**
+
+---
+
+## Disclaimer
+
+RegimeLab is an analytical research tool. It is not a trading system and does not provide investment advice.
